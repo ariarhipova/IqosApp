@@ -7,6 +7,7 @@ namespace WinFormsApp
 {
     /// <summary>
     /// Главная форма приложения для управления устройствами IQOS.
+    /// CRUD-операции + переход к форме бизнес-функций.
     /// </summary>
     public partial class Form1 : Form
     {
