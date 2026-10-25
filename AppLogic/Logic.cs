@@ -1,21 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using DataAccessLayer;
+using Model;
 
 namespace AppLogic
 {
     /// <summary>
     /// Реализация бизнес-логики для работы с устройствами IQOS.
+    /// Вместо списка в памяти данные хранятся в БД через репозиторий.
     /// </summary>
     public class Logic : ILogic
     {
-        private List<Iqos> iqosList = new List<Iqos>();
-        private int nextId = 0;
+        // Было (Практическая №1): private List<Iqos> iqosList = new List<Iqos>();
+        private readonly IRepository<Iqos> repository;
 
         /// <summary>
-        /// Добавляет новое устройство в список.
+        /// Создаёт бизнес-логику с репозиторием по умолчанию.
+        /// Этот конструктор вызывают View (консоль и WinForms).
+        /// Сценарий работы с БД выбирается здесь одной строкой.
         /// </summary>
-        /// <param name="iqos">Устройство для добавления.</param>
+        public Logic()
+        {
+           // repository = new EntityRepository<Iqos>();     // сценарий EF
+            repository = new DapperRepository<Iqos>();   // сценарий Dapper
+        }
+
+        /// <summary>
+        /// Создаёт бизнес-логику с переданным репозиторием.
+        /// </summary>
+        /// <param name="repository">Репозиторий устройств.</param>
+        /// <exception cref="ArgumentNullException">Если repository == null.</exception>
+        public Logic(IRepository<Iqos> repository)
+        {
+            this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        }
+
+        /// <summary>
+        /// Добавляет новое устройство.
+        /// </summary>
+        /// <param name="iqos">Устройство для добавления. Id назначает БД.</param>
         /// <exception cref="ArgumentNullException">Если iqos == null.</exception>
         /// <exception cref="ArgumentException">Если устройство с такой моделью уже существует.</exception>
         public void AddIqos(Iqos iqos)
@@ -26,8 +50,7 @@ namespace AppLogic
             if (IqosExists(iqos.Model))
                 throw new ArgumentException($"Устройство с моделью {iqos.Model} уже существует");
 
-            iqos.Id = nextId++;
-            iqosList.Add(iqos);
+            repository.Add(iqos);
         }
 
         /// <summary>
@@ -37,7 +60,7 @@ namespace AppLogic
         /// <returns>True, если устройство существует; иначе False.</returns>
         public bool IqosExists(string model)
         {
-            return iqosList.Any(i => i.Model == model);
+            return repository.ReadAll().Any(i => i.Model == model);
         }
 
         /// <summary>
@@ -46,7 +69,7 @@ namespace AppLogic
         /// <returns>Список всех устройств.</returns>
         public List<Iqos> GetAllIqos()
         {
-            return iqosList.ToList();
+            return repository.ReadAll().ToList();
         }
 
         /// <summary>
@@ -56,7 +79,7 @@ namespace AppLogic
         /// <returns>Найденное устройство или null.</returns>
         public Iqos? GetIqosById(int id)
         {
-            return iqosList.FirstOrDefault(i => i.Id == id);
+            return repository.ReadById(id);
         }
 
         /// <summary>
@@ -67,7 +90,7 @@ namespace AppLogic
         /// <returns>True, если обновление успешно; иначе False.</returns>
         public bool UpdateIqosById(int id, UpdateIqosDTO updatedIqos)
         {
-            var iqos = iqosList.FirstOrDefault(i => i.Id == id);
+            var iqos = repository.ReadById(id);
             if (iqos == null) return false;
 
             iqos.Model = updatedIqos.Model ?? iqos.Model;
@@ -75,6 +98,8 @@ namespace AppLogic
             iqos.Country = updatedIqos.Country ?? iqos.Country;
             iqos.Price = updatedIqos.Price ?? iqos.Price;
             iqos.SticksPerPack = updatedIqos.SticksPerPack ?? iqos.SticksPerPack;
+
+            repository.Update(iqos);
             return true;
         }
 
@@ -85,10 +110,9 @@ namespace AppLogic
         /// <returns>True, если удаление успешно; иначе False.</returns>
         public bool DeleteIqosById(int id)
         {
-            var iqos = iqosList.FirstOrDefault(i => i.Id == id);
-            if (iqos == null) return false;
+            if (repository.ReadById(id) == null) return false;
 
-            iqosList.Remove(iqos);
+            repository.Delete(id);
             return true;
         }
 
@@ -98,7 +122,7 @@ namespace AppLogic
         /// <returns>Самое дорогое устройство или null.</returns>
         public Iqos? GetMostExpensiveIqos()
         {
-            return iqosList.OrderByDescending(i => i.Price).FirstOrDefault();
+            return repository.ReadAll().OrderByDescending(i => i.Price).FirstOrDefault();
         }
 
         /// <summary>
@@ -107,7 +131,7 @@ namespace AppLogic
         /// <returns>Самое дешёвое устройство или null.</returns>
         public Iqos? GetCheapestIqos()
         {
-            return iqosList.OrderBy(i => i.Price).FirstOrDefault();
+            return repository.ReadAll().OrderBy(i => i.Price).FirstOrDefault();
         }
 
         /// <summary>
@@ -116,7 +140,7 @@ namespace AppLogic
         /// <returns>Словарь: страна → список устройств.</returns>
         public Dictionary<string, List<Iqos>> GroupByCountry()
         {
-            return iqosList
+            return repository.ReadAll()
                 .GroupBy(i => i.Country)
                 .ToDictionary(g => g.Key, g => g.ToList());
         }

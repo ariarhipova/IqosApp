@@ -1,14 +1,15 @@
 ﻿using System;
 
-namespace AppLogic
+namespace Model
 {
     /// <summary>
     /// Сущность, представляющая устройство IQOS.
+    /// Реализует IDomainObject, чтобы с ней могли работать репозитории.
     /// </summary>
-    public class Iqos
+    public class Iqos : IDomainObject
     {
         /// <summary>
-        /// Уникальный идентификатор устройства.
+        /// Уникальный идентификатор устройства (первичный ключ в БД, назначается автоматически).
         /// </summary>
         public int Id { get; set; }
 

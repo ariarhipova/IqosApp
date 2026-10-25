@@ -1,5 +1,6 @@
 ﻿using System;
 using AppLogic;
+using Model;
 
 namespace AppConsole
 {
@@ -49,6 +50,9 @@ namespace AppConsole
         /// </summary>
         static void DefaultIqos()
         {
+            // Данные теперь хранятся в БД: тестовые устройства добавляем только в пустую базу
+            if (logic.GetAllIqos().Count > 0) return;
+
             logic.AddIqos(new Iqos { Model = "IQOS 3 DUO", Color = "Белый", Country = "Япония", Price = 7990m, SticksPerPack = 20 });
             logic.AddIqos(new Iqos { Model = "IQOS 3", Color = "Чёрный", Country = "Япония", Price = 5990m, SticksPerPack = 20 });
             logic.AddIqos(new Iqos { Model = "IQOS 2.4 Plus", Color = "Синий", Country = "Швейцария", Price = 3990m, SticksPerPack = 20 });
